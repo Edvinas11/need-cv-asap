@@ -20,6 +20,8 @@ pytesseract = "^0.3.10"
 spacy = "^3.7.2"
 transformers = "^4.35.0"
 torch = "^2.1.0"
+openai = "^1.61.1"
+pypdf2 = "^3.0.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
