@@ -7,12 +7,14 @@ from openai.types.beta.threads.message_create_params import (
 )
 from dotenv import load_dotenv
 import json
+from pathlib import Path
 
 # Load environment variables
 load_dotenv()
 
-TEMP_DIR = os.path.join(os.path.dirname(__file__), "tmp/")
-os.makedirs(TEMP_DIR, exist_ok=True)
+base_dir = Path(__file__).resolve().parent.parent.parent # backend/app
+temporary_dir_path = base_dir / "cv-processing"
+temporary_dir_path.mkdir(parents=True, exist_ok=True)
 
 class OpenAIService:
     """
@@ -33,6 +35,7 @@ class OpenAIService:
         Creates an OpenAI Assistant for PDF content extraction.
         """
         return self.client.beta.assistants.create(
+            instructions="You are a helpful PDF assistant and you scan the file provided to you.",
             model="gpt-4o",
             description="An assistant to extract the contents of PDF files.",
             tools=[{"type": "file_search"}],
@@ -46,17 +49,29 @@ class OpenAIService:
         return self.client.files.create(
             file=open(file_path, "rb"), purpose="assistants"
         )
+    
+    def load_prompt(self, prompt_file: str) -> str:
+        """
+        Loads the prompt text from a given .txt file.
+        """
+        prompt_file_path = base_dir / "prompts" / prompt_file
+
+        if not prompt_file_path.exists():
+            raise FileNotFoundError(f"Prompt file not found: {prompt_file_path}")
+
+        with open(prompt_file_path, "r", encoding="utf-8") as prompt_file:
+            return prompt_file.read()
 
     async def process_cv(self, file):
         """
         Handles CV processing by extracting text using OpenAI's Assistant.
         """
 
-        temp_file_path = os.path.join(TEMP_DIR, file.filename)
+        temp_file_path = temporary_dir_path / file.filename
 
         with open(temp_file_path, "wb") as temp_file:
             temp_file.write(await file.read())
-        print(f"File temporary saved in {TEMP_DIR}")
+        print(f"File temporary saved in {temp_file_path}")
         
         # Create PDF Assistant
         print("Creating PDF assistant...")
@@ -70,27 +85,7 @@ class OpenAIService:
         uploaded_file = self.upload_file(temp_file_path)
 
         # Define prompt
-        prompt = """You are an expert in resume analysis, resume optimization, and recruitment technology. Your task is to analyze the provided CV file, ensuring it meets industry best practices for automated screening and ranking.
-
-            <Instructions>
-            OUTPUT FORMAT:
-            Return ONLY a valid JSON object in this format:
-            {
-                "features" : [
-                    {
-                        "issue": "actual found issue here",
-                        "description": "issue explanation here",
-                        "action": "specific recommendation for improvement",
-                        "result": "fix the issue"
-                    }
-                ]
-            }
-
-            IMPORTANT:
-            Do NOT return any additional text or explanations outside the JSON structure.
-
-            </Instructions>
-            """
+        prompt = self.load_prompt("cv-scan.txt")
 
         # Send message to OpenAI Assistant
         self.client.beta.threads.messages.create(
@@ -118,11 +113,11 @@ class OpenAIService:
         messages = [message for message in messages_cursor]
 
         # Extract the text response
-        extracted_text = messages[0].content[0].text.value
+        output = messages[0].content[0].text.value
 
         # Cleanup temp file
         # os.remove(temp_file_path)
 
-        print("OUTPUT:" + extracted_text)
+        print("OUTPUT:" + output)
 
-        return extracted_text
+        return output

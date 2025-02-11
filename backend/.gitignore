@@ -1,7 +1,7 @@
 # Environment variables
 
 # tmp folder
-tmp/
+cv-processing/
 
 # Python
 __pycache__/
