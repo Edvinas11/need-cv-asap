@@ -113,11 +113,17 @@ class OpenAIService:
         messages = [message for message in messages_cursor]
 
         # Extract the text response
-        output = messages[0].content[0].text.value
+        json_output_str = messages[0].content[0].text.value
+
+        cleaned_json = json_output_str.strip()
+        if cleaned_json.startswith("```json"):
+            cleaned_json = cleaned_json.split("\n", 1)[1]  # Remove first line
+        if cleaned_json.endswith("```"):
+            cleaned_json = cleaned_json.rsplit("\n", 1)[0]  # Remove last line
+
+        output = json.loads(cleaned_json)
 
         # Cleanup temp file
         # os.remove(temp_file_path)
-
-        print("OUTPUT:" + output)
 
         return output
