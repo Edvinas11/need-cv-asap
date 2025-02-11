@@ -37,8 +37,9 @@ async def analyze_cv(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
 
     try:
+        print(f"Processing provided CV file {file.filename}")
         extracted_text = await openai_service.process_cv(file)
-        return {"extracted_text": extracted_text}
+        return extracted_text
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

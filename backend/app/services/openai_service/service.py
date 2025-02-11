@@ -6,6 +6,7 @@ from openai.types.beta.threads.message_create_params import (
     AttachmentToolFileSearch,
 )
 from dotenv import load_dotenv
+import json
 
 # Load environment variables
 load_dotenv()
@@ -55,10 +56,12 @@ class OpenAIService:
 
         with open(temp_file_path, "wb") as temp_file:
             temp_file.write(await file.read())
-        print(f"File saved in {temp_file_path}")
+        print(f"File temporary saved in {TEMP_DIR}")
         
         # Create PDF Assistant
+        print("Creating PDF assistant...")
         pdf_assistant = self.create_pdf_assistant()
+        print(f"Created. Assistant ID: {pdf_assistant.id}")
 
         # Create OpenAI Thread
         thread = self.client.beta.threads.create()
@@ -67,7 +70,27 @@ class OpenAIService:
         uploaded_file = self.upload_file(temp_file_path)
 
         # Define prompt
-        prompt = "Extract the key points from the CV file provided without altering it. Just output its key points like skills and nothing else."
+        prompt = """You are an expert in resume analysis, resume optimization, and recruitment technology. Your task is to analyze the provided CV file, ensuring it meets industry best practices for automated screening and ranking.
+
+            <Instructions>
+            OUTPUT FORMAT:
+            Return ONLY a valid JSON object in this format:
+            {
+                "features" : [
+                    {
+                        "issue": "actual found issue here",
+                        "description": "issue explanation here",
+                        "action": "specific recommendation for improvement",
+                        "result": "fix the issue"
+                    }
+                ]
+            }
+
+            IMPORTANT:
+            Do NOT return any additional text or explanations outside the JSON structure.
+
+            </Instructions>
+            """
 
         # Send message to OpenAI Assistant
         self.client.beta.threads.messages.create(
@@ -99,5 +122,7 @@ class OpenAIService:
 
         # Cleanup temp file
         # os.remove(temp_file_path)
+
+        print("OUTPUT:" + extracted_text)
 
         return extracted_text
