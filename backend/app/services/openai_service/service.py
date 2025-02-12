@@ -85,7 +85,7 @@ class OpenAIService:
         uploaded_file = self.upload_file(temp_file_path)
 
         # Define prompt
-        prompt = self.load_prompt("cv-scan.txt")
+        prompt = self.load_prompt("cv-scan-v2.txt")
 
         # Send message to OpenAI Assistant
         self.client.beta.threads.messages.create(
